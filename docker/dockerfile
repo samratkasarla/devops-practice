@@ -1,0 +1,23 @@
+FROM python:3.6.1-alpine
+RUN apt update
+RUN mkdir /usr/src/app
+WORKDIR /usr/src/app
+COPY ./requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+ENV PYTHONUNBUFFERED 1
+COPY . .
+
+
+FROM node:16
+WORKDIR /usr/src/app
+COPY . .
+RUN npm cache clean --force
+RUN npm install -g npm@8.16.0
+RUN npm install --legacy-peer-deps
+RUN npm install sanitize.css csstools/normalize.css  --legacy-peer-deps
+RUN npm run build
+EXPOSE 3000
+CMD [ "npm", "run", "start" ]
+
+
