@@ -1,0 +1,64 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('git pull') {
+            steps {
+                git 'https://github.com/Pritam-Khergade/student-ui.git'
+            }
+        }
+        stage('awscli install') {
+            steps {
+                sh 'sudo apt-get update -y '
+                sh 'sudo apt install awscli -y '
+            }
+        }
+        stage('Build stage') {
+            steps {
+                sh 'sudo apt-get update -y '
+                sh 'sudo apt-get install maven -y'
+                sh 'mvn clean package'
+                sh 'sudo mkdir -p /artifact > /dev/null && sudo chown jenkins: /artifact'
+                 sh 'sudo mv  /var/lib/jenkins/workspace/${JOB_NAME}/target/studentapp-2.2-SNAPSHOT.war /artifact/student-${BUILD_ID}.war'
+            }
+        }
+        stage('artifact push to s3 bucket') {
+            steps {
+                sh 'sudo aws s3 ls'
+                sh 'sudo apt install awscli -y '
+                sh 'aws s3 cp /artifact/student-${BUILD_ID}.war s3://test-artifact-pritam'
+            }
+        }
+        stage('docker'){
+        steps {
+                sh 'sudo apt-get install docker.io -y'
+                sh 'sudo apt-get update -y '
+                sh 'sudo systemctl start docker'
+                sh 'sudo systemctl enable docker'
+                sh 'cp -rv /artifact/student-${BUILD_ID}.war student-${BUILD_ID}.war'
+                //sh 'echo \'FROM tomcat\\nWORKDIR /opt/tomcat/webapps/ \\nRUN apt-get install curl && RUN curl -O https://test-artifact-pritam.s3.us-east-2.amazonaws.com/student-${BUILD_ID}.war \\nEXPOSE 8080\' > dockerfile'
+                sh ''' 
+                cat << EOF > dockerfile
+FROM tomcat
+COPY student-${BUILD_ID}.war ./webapps/
+EXPOSE 8080
+                ''' //heredocs
+                sh 'cat dockerfile'
+                sh 'sudo chown jenkins: /usr/bin/docker'
+                sh 'sudo docker build .'
+            }
+        }
+        stage('docker image pus to ECR') {
+            steps {
+                sh 'sudo chmod 666 /var/run/docker.sock'
+                sh 'sudo usermod -aG docker ${USER}'
+                sh 'aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 813483111803.dkr.ecr.us-east-2.amazonaws.com'
+                sh 'docker build -t mydocker-repo-ecr .'
+                sh 'docker tag mydocker-repo-ecr:latest 813483111803.dkr.ecr.us-east-2.amazonaws.com/mydocker-repo-ecr:latest'
+                sh 'docker push 813483111803.dkr.ecr.us-east-2.amazonaws.com/mydocker-repo-ecr:latest'
+            }
+        }
+    }
+}
+
+Worked on CI/CD pipeline which is for Java based microservice, consist of 
