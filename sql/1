@@ -1,0 +1,20 @@
+# mysql -u root -p
+
+mysql > show databases;
+mariadb > show databases;
+
+mysql > exit; (in RHEL - 6) and mariadb > exit; (in RHEL - 7)
+
+ii) Create the database and connect the databases.
+mysql or mariadb > create database <database name>;
+mysql or mariadb>show databases; 
+mysql or mariadb > use <database name>;
+
+mysql or mariadb > create table mydetails (Name varchar (30), status varchar (10),
+Address varchar (50), phone int (10));
+
+# mysqldump -u root -p <database name>><file name with full path>
+
+mysql or mariadb >drop database <database name>;
+
+mysql or mariadb > create user <user name>@<host name> identified by "<password>";
